@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, time::SystemTime};
+use std::{
+    collections::BTreeMap,
+    time::{Duration, SystemTime},
+};
 
 use color_eyre::Result;
 use nalgebra::{Matrix2, Matrix4};
@@ -61,6 +64,7 @@ pub struct MainOutputs {
     pub ball_position: MainOutput<Option<BallPosition<Ground>>>,
     pub removed_ball_positions: MainOutput<Vec<Point2<Ground>>>,
     pub hypothetical_ball_positions: MainOutput<Vec<HypotheticalBallPosition<Ground>>>,
+    pub estimated_resting_position: MainOutput<Option<Point2<Ground>>>,
 }
 
 impl BallFilter {
@@ -211,6 +215,24 @@ impl BallFilter {
             .best_ball_hypothesis
             .fill_if_subscribed(|| best_hypothesis.cloned());
 
+        let resting_position = best_hypothesis.cloned().map(|mut hypothesis| {
+            let delta_time = Duration::from_secs_f32(0.012);
+            loop {
+                hypothesis.predict(
+                    delta_time,
+                    Default::default(),
+                    filter_parameters.velocity_decay_factor,
+                    Matrix4::identity(),
+                    Matrix2::identity(),
+                    velocity_threshold,
+                );
+                if hypothesis.choose_ball(velocity_threshold).velocity.norm() > 0.01 {
+                    break;
+                }
+            }
+            hypothesis.choose_ball(velocity_threshold).position
+        });
+
         let filtered_ball =
             best_hypothesis.map(|hypothesis| hypothesis.choose_ball(velocity_threshold));
 
@@ -258,6 +280,7 @@ impl BallFilter {
                     filter_parameters.validity_output_threshold,
                 )
                 .into(),
+            estimated_resting_position: resting_position.into(),
         })
     }
 

@@ -34,6 +34,7 @@ pub struct CycleContext {
     filtered_game_controller_state:
         Input<Option<FilteredGameControllerState>, "filtered_game_controller_state?">,
     field_dimensions: Parameter<FieldDimensions, "field_dimensions">,
+    estimated_resting_position: Input<Option<Point2<Ground>>, "estimated_resting_position?">,
 }
 
 #[context]
@@ -55,22 +56,27 @@ impl BallStateComposer {
             context.ball_position,
             context.team_ball,
             context.ground_to_field,
+            context.estimated_resting_position,
         ) {
-            (Some(ball_position), _, Some(ground_to_field)) => Some(create_ball_state(
-                ball_position.position,
-                ground_to_field * ball_position.position,
-                ball_position.velocity,
-                ball_position.last_seen,
-                &mut self.last_ball_field_side,
-                context.penalty_shot_direction.copied(),
-            )),
-            (None, Some(team_ball), Some(ground_to_field)) => Some(create_ball_state(
+            (Some(ball_position), _, Some(ground_to_field), Some(estimated_resting_position)) => {
+                Some(create_ball_state(
+                    ball_position.position,
+                    ground_to_field * ball_position.position,
+                    ball_position.velocity,
+                    ball_position.last_seen,
+                    &mut self.last_ball_field_side,
+                    context.penalty_shot_direction.copied(),
+                    *estimated_resting_position,
+                ))
+            }
+            (None, Some(team_ball), Some(ground_to_field), _) => Some(create_ball_state(
                 ground_to_field.inverse() * team_ball.position,
                 team_ball.position,
                 ground_to_field.inverse() * team_ball.velocity,
                 team_ball.last_seen,
                 &mut self.last_ball_field_side,
                 context.penalty_shot_direction.copied(),
+                ground_to_field.inverse() * team_ball.position,
             )),
             _ => None,
         };
@@ -113,6 +119,7 @@ impl BallStateComposer {
                     context.cycle_time.start_time,
                     &mut self.last_ball_field_side,
                     context.penalty_shot_direction.copied(),
+                    ground_to_field.inverse() * penalty_spot_location,
                 ))
             }
             (PrimaryState::Ready, Some(ground_to_field), ..) => Some(create_ball_state(
@@ -122,6 +129,7 @@ impl BallStateComposer {
                 context.cycle_time.start_time,
                 &mut self.last_ball_field_side,
                 context.penalty_shot_direction.copied(),
+                ground_to_field.inverse() * Point2::origin(),
             )),
             _ => None,
         };
@@ -140,6 +148,7 @@ fn create_ball_state(
     last_seen_ball: SystemTime,
     last_ball_field_side: &mut Side,
     penalty_shot_direction: Option<PenaltyShotDirection>,
+    estimated_resting_position: Point2<Ground>,
 ) -> BallState {
     let was_in_left_half = *last_ball_field_side == Side::Left;
     let is_in_left_half =
@@ -158,5 +167,6 @@ fn create_ball_state(
         last_seen_ball,
         field_side,
         penalty_shot_direction,
+        estimated_resting_position,
     }
 }

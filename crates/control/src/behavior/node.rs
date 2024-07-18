@@ -159,7 +159,7 @@ impl Behavior {
         }
 
         if matches!(world_state.robot.player_number, PlayerNumber::One)
-            && matches!(world_state.robot.role, Role::Keeper)
+        //&& matches!(world_state.robot.role, Role::Keeper)
         {
             actions.push(Action::WideStance);
         }

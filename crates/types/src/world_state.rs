@@ -41,6 +41,7 @@ pub struct BallState {
     pub last_seen_ball: SystemTime,
     pub penalty_shot_direction: Option<PenaltyShotDirection>,
     pub field_side: Side,
+    pub estimated_resting_position: Point2<Ground>,
 }
 
 impl Default for BallState {
@@ -52,6 +53,7 @@ impl Default for BallState {
             last_seen_ball: UNIX_EPOCH,
             penalty_shot_direction: Default::default(),
             field_side: Side::Left,
+            estimated_resting_position: Point2::origin(),
         }
     }
 }
@@ -65,6 +67,7 @@ impl BallState {
             last_seen_ball: UNIX_EPOCH,
             penalty_shot_direction: Default::default(),
             field_side: Side::Left,
+            estimated_resting_position: Point2::origin(),
         }
     }
 }

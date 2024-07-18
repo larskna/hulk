@@ -61,17 +61,11 @@ impl<'cycle> Defend<'cycle> {
     ) -> Option<MotionCommand> {
         let ball = self.world_state.ball?;
 
-        let position = ball.ball_in_ground;
-        let velocity = ball.ball_in_ground_velocity;
+        let ball_rest_position = ball.estimated_resting_position;
 
-        if velocity.x() >= wide_stance_paramters.minimum_velocity {
-            return None;
-        }
-
-        let horizontal_distance_to_intersection =
-            position.y() - position.x() / velocity.x() * velocity.y();
-
-        if horizontal_distance_to_intersection.abs() < wide_stance_paramters.action_radius {
+        if ball_rest_position.y() < wide_stance_paramters.action_radius
+            && ball_rest_position.x() <= 0.5
+        {
             Some(MotionCommand::WideStance)
         } else {
             None
